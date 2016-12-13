@@ -23,6 +23,8 @@ int main(void)
 
 	bool keys[5] = { false, false, false, false, false };
 	bool przeciwnik_hit = false;
+	int pos_moneta=0;
+	bool wys_monete = false;
 
 	//allegro variable
 	ALLEGRO_DISPLAY *display = NULL;
@@ -41,17 +43,18 @@ int main(void)
 	//addon init
 	al_install_keyboard();
 	al_init_image_addon();
-	 ALLEGRO_BITMAP *postac = al_load_bitmap("postac_0.png");
-	 ALLEGRO_BITMAP *postac1 = al_load_bitmap("postac_1.png");
-	 ALLEGRO_BITMAP *postac2 = al_load_bitmap("postac_2.png");
-	ALLEGRO_BITMAP *postac_o = al_load_bitmap("postac_o.png");
-	ALLEGRO_BITMAP *postac_hit = al_load_bitmap("postac_hit.png");
-	ALLEGRO_BITMAP *postac_hit_o = al_load_bitmap("postac_hit_o.png");
-	ALLEGRO_BITMAP *wrogowie = al_load_bitmap("wrogowie.png");
-	ALLEGRO_BITMAP *wrogowie_o = al_load_bitmap("wrogowie_o.png");
-	ALLEGRO_BITMAP *wrogowie_hit = al_load_bitmap("wrogowie_hit.png");
-	ALLEGRO_BITMAP *wrogowie_hit_o = al_load_bitmap("wrogowie_hit_o.png");
-	ALLEGRO_BITMAP *tlo = al_load_bitmap("tlo.png");
+	 ALLEGRO_BITMAP *postac = al_load_bitmap("images/postac/postac_0.png");
+	 ALLEGRO_BITMAP *postac2_o = al_load_bitmap("images/postac/postac_2_o.png");
+	 ALLEGRO_BITMAP *postac2 = al_load_bitmap("images/postac/postac_2.png");
+	ALLEGRO_BITMAP *postac_o = al_load_bitmap("images/postac/postac_o.png");
+	ALLEGRO_BITMAP *postac_hit = al_load_bitmap("images/postac/postac_hit.png");
+	ALLEGRO_BITMAP *postac_hit_o = al_load_bitmap("images/postac/postac_hit_o.png");
+	ALLEGRO_BITMAP *wrogowie = al_load_bitmap("images/wrogowie/wrogowie.png");
+	ALLEGRO_BITMAP *wrogowie_o = al_load_bitmap("images/wrogowie/wrogowie_o.png");
+	ALLEGRO_BITMAP *wrogowie_hit = al_load_bitmap("images/wrogowie/wrogowie_hit.png");
+	ALLEGRO_BITMAP *wrogowie_hit_o = al_load_bitmap("images/wrogowie/wrogowie_hit_o.png");
+	ALLEGRO_BITMAP *tlo = al_load_bitmap("images/tlo/tlo.png");
+	ALLEGRO_BITMAP *moneta = al_load_bitmap("images/tlo/moneta.png");
 	ALLEGRO_FONT * font8 = al_create_builtin_font();
 	ALLEGRO_FONT * font9 = al_create_builtin_font();
 
@@ -188,24 +191,43 @@ int main(void)
 				{
 					test = 0;
 				}
-				if (x % 20 < 20 && x % 20 > 10)
+				if (x % 20 >= 10)
 				{
 					test = 1;
 				}
-		
-				if ( test == 0)
+
+				if (test == 0 || !keys[RIGHT] && !keys[SPACE])
 				{
 					al_draw_bitmap(postac, x, y, 0);
 				}
-				if ( test == 1)
+				if (test == 1 && keys[RIGHT])
 				{
 					al_draw_bitmap(postac2, x, y, 0);
 				}
-			
-			
 			}
-			if (keys[LEFT] && !keys[SPACE])
-				al_draw_bitmap(postac_o, x, y, 0);
+				//back animacja
+
+				if (!keys[SPACE] && keys[LEFT])
+				{
+					if (x % 10 < 10)
+					{
+						test = 0;
+					}
+					if (x % 20 >= 10)
+					{
+						test = 1;
+					}
+
+					if (test == 0)
+					{
+						al_draw_bitmap(postac_o, x, y, 0);
+					}
+					if (test == 1)
+					{
+						al_draw_bitmap(postac2_o, x, y, 0);
+					}
+			}
+		
 			if (keys[LEFT] && keys[SPACE])
 				al_draw_bitmap(postac_hit_o, x, y, 0);
 
@@ -224,7 +246,18 @@ int main(void)
 				}
 			}
 			
-		
+			//moneta
+
+			if (pos_moneta == ilosc_zabic)
+			{
+				pos_moneta = (rand() % 400) + 100;
+				pos_moneta++;
+				wys_monete = true;
+			}
+			if (wys_monete == true)
+			{
+				al_draw_bitmap(moneta, pos_moneta, pos_moneta, 0);
+			}
 			
 			//smierc
 			if (hp_gracza == 0)
