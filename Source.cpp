@@ -3,8 +3,10 @@
 #include <allegro5\allegro_font.h>
 #include <allegro5\allegro_ttf.h>
 #include <ctime>
+#include <allegro5\allegro_audio.h>
+#include <allegro5\allegro_acodec.h>
 
-enum KEYS { UP, DOWN, LEFT, RIGHT, SPACE, W, S, A, D, LSHIFT };
+enum KEYS { UP, DOWN, LEFT, RIGHT, SPACE, W, S, A, D, LSHIFT, ENTER, ESCAPE};
 
 int main(void)
 {
@@ -15,6 +17,7 @@ int main(void)
 
 	srand(time(NULL));
 	bool done = false;
+	bool done2 = false;
 	int postac_x = 50;
 	int postac2_x = 50;
 	int wrog_x =  750;
@@ -29,7 +32,7 @@ int main(void)
 	int wrog2_y = 250;
 	int wrog3_y = 200;
 	int wrog4_y = 150;
-	int hp_przeciwnika=5, hp_gracza=10, ilosc_zabic=0;
+	int hp_przeciwnika=5, hp_gracza=10,ilosc_zabic=0;
 	int hp_przeciwnika1 = 5;
 	int hp_przeciwnika2 = 5;
 	int hp_przeciwnika3 = 5;
@@ -37,11 +40,12 @@ int main(void)
 	int postac_ruch = 0, wrog_ruch=0, postac2_ruch=0;
 	bool zyje = false, zyje1 = false, zyje2 = false,zyje3=false,zyje4=false;
 
-	bool keys[10] = { false, false, false, false, false, false , false , false ,false ,false };
+	bool keys[12] = { false, false, false, false, false, false , false , false ,false ,false, false, false };
 	bool przeciwnik_hit = false;
 	bool wys_monete = false, dodaj_monete = false, licz_monety = false;
 	int pos_moneta_x, pos_moneta_y, ilosc_monet = 0, ilosc_wrogow = 5;
-	int naboje = 9, przeladowanie = 50;
+	int naboje = 9, przeladowanie = 100;
+	int ilosc_graczy = 0;
 
 	//allegro variable
 	ALLEGRO_DISPLAY *display = nullptr;
@@ -52,10 +56,10 @@ int main(void)
 	if (!al_init())										//initialize Allegro
 		return -1;
 
-	display = al_create_display(width, height);	
+	
 	al_set_window_title(display, "Stickman and Zombies");
 	ALLEGRO_KEYBOARD_STATE klawiatura;     //create our display object
-
+	display = al_create_display(width, height);
 	if (!display)										//test display object
 		return -1;
 
@@ -63,6 +67,8 @@ int main(void)
 
 	//addon init
 	al_install_keyboard();
+	al_install_audio();
+	al_init_acodec_addon();
 	al_init_image_addon();
 	al_init_font_addon();
 	al_init_ttf_addon();
@@ -128,10 +134,28 @@ int main(void)
 	ALLEGRO_BITMAP *moneta = al_load_bitmap("images/tlo/moneta.png");
 	ALLEGRO_BITMAP *mur = al_load_bitmap("images/inne/mur.png");
 	ALLEGRO_BITMAP *wybuch = al_load_bitmap("images/inne/bang.png");
+	ALLEGRO_BITMAP *menu = al_load_bitmap("images/menu/tlo.png");
+	ALLEGRO_BITMAP *menu_graj = al_load_bitmap("images/menu/graj.png");
+	ALLEGRO_BITMAP *menu_graj2 = al_load_bitmap("images/menu/graj2.png");
+	ALLEGRO_BITMAP *menu_graj2_o = al_load_bitmap("images/menu/graj2_o.png");
+	ALLEGRO_BITMAP *menu_ponownie = al_load_bitmap("images/menu/ponownie.png");
+	ALLEGRO_BITMAP *menu_ponownie_o = al_load_bitmap("images/menu/ponownie_o.png");
+	ALLEGRO_BITMAP *menu_wyjdz = al_load_bitmap("images/menu/wyjscie.png");
+	ALLEGRO_BITMAP *menu_graj_o = al_load_bitmap("images/menu/graj_o.png");
+	ALLEGRO_BITMAP *menu_wyjdz_o = al_load_bitmap("images/menu/wyjscie_o.png");
 
 	ALLEGRO_FONT * font8 = al_create_builtin_font();
 	ALLEGRO_FONT * font9 = al_create_builtin_font();
 	ALLEGRO_FONT * font_ttf = al_load_ttf_font("SHOWG.TTF", 36, 0);
+
+	ALLEGRO_SAMPLE *strzal = al_load_sample("sounds/strzal.wav");
+	ALLEGRO_SAMPLE *przeladuj = al_load_sample("sounds/przeladuj.wav");
+	ALLEGRO_SAMPLE *muzyka = al_load_sample("sounds/tlo.wav");
+	ALLEGRO_SAMPLE *przeladuj_k = al_load_sample("sounds/przeladuj2.wav");
+	ALLEGRO_SAMPLE *death = al_load_sample("sounds/death.wav");
+
+	al_reserve_samples(5);
+
 	event_queue = al_create_event_queue();
 	timer = al_create_timer(1.0 / FPS);
 
@@ -139,12 +163,93 @@ int main(void)
 	al_register_event_source(event_queue, al_get_timer_event_source(timer));
 	
 	al_start_timer(timer);
-	
+	int wybierz=0, menu_wybierz=0,licz=0;
+
 	
 	while (!done)
 	{
 		ALLEGRO_EVENT ev;
 		al_wait_for_event(event_queue, &ev);
+		switch (wybierz)
+		{
+		case 0:
+		{
+			al_play_sample(muzyka, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, 0);
+			al_get_keyboard_state(&klawiatura);
+			while (!al_key_down(&klawiatura, ALLEGRO_KEY_ENTER))
+			{
+				al_wait_for_event(event_queue, &ev);
+				al_draw_bitmap(menu, 0, 0, 0);
+				al_draw_bitmap(menu_graj, 250, 200, 0);
+				al_draw_bitmap(menu_graj2, 255, 250, 0);
+				al_draw_bitmap(menu_wyjdz, 310, 300, 0);
+				if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
+				{
+					switch (ev.keyboard.keycode)
+					{
+					case ALLEGRO_KEY_UP:
+						keys[UP] = true;
+						break;
+					case ALLEGRO_KEY_DOWN:
+						keys[UP] = true;
+						break;
+					}
+				}
+				else if (ev.type == ALLEGRO_EVENT_KEY_UP)
+				{
+					switch (ev.keyboard.keycode)
+					{
+					case ALLEGRO_KEY_UP:
+						al_play_sample(strzal, 0.5, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, 0);
+						if (menu_wybierz == 0)
+							menu_wybierz = 2;
+						else if (menu_wybierz == 1)
+							menu_wybierz = 0;
+						else if (menu_wybierz == 2)
+							menu_wybierz = 1;
+						keys[UP] = false;
+						break;
+					case ALLEGRO_KEY_DOWN:
+						al_play_sample(strzal, 0.5, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, 0);
+						keys[DOWN] = false;
+						if (menu_wybierz == 0)
+							menu_wybierz = 1;
+						else if (menu_wybierz == 1)
+							menu_wybierz =2 ;
+						else if (menu_wybierz == 2)
+							menu_wybierz = 0;
+						break;
+					}
+				}
+				
+				al_get_keyboard_state(&klawiatura);
+				if (al_key_down(&klawiatura, ALLEGRO_KEY_ENTER) && menu_wybierz == 0)
+				{
+					wybierz = 1;
+					ilosc_graczy = 1;
+				}
+				if (al_key_down(&klawiatura, ALLEGRO_KEY_ENTER) && menu_wybierz == 1)
+				{
+					wybierz = 1;
+					ilosc_graczy = 2;
+				}
+				if (al_key_down(&klawiatura, ALLEGRO_KEY_ENTER) && menu_wybierz == 2)
+					wybierz = 404;
+
+					
+					
+				if (menu_wybierz == 0)
+					al_draw_bitmap(menu_graj_o, 250, 200, 0);
+				if (menu_wybierz == 1)
+					al_draw_bitmap(menu_graj2_o, 255, 250, 0);
+				if (menu_wybierz == 2)
+				al_draw_bitmap(menu_wyjdz_o, 310, 300, 0);
+
+				al_flip_display();
+			}
+		}break;
+	case 1:
+	{
 
 		if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
 		{
@@ -164,8 +269,11 @@ int main(void)
 				break;
 			case ALLEGRO_KEY_SPACE:
 				keys[SPACE] = true;
-				if (naboje>0)
-				naboje--;
+				if (naboje > 0)
+				{
+					naboje--;
+					al_play_sample(strzal, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, 0);
+				}
 				break;
 			case ALLEGRO_KEY_W:
 				keys[W] = true;
@@ -181,12 +289,15 @@ int main(void)
 				break;
 			case ALLEGRO_KEY_LSHIFT:
 				keys[LSHIFT] = true;
-				if (naboje>0)
+				if (naboje > 0 && ilosc_graczy == 2)
+				{
 					naboje--;
+					al_play_sample(strzal, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, 0);
+				}
 				break;
 			}
 		}
-		else if (ev.type == ALLEGRO_EVENT_KEY_UP)
+		if (ev.type == ALLEGRO_EVENT_KEY_UP)
 		{
 			switch (ev.keyboard.keycode)
 			{
@@ -218,6 +329,7 @@ int main(void)
 				keys[D] = false;
 				break;
 			case ALLEGRO_KEY_LSHIFT:
+				
 				keys[LSHIFT] = false;
 				break;
 			case ALLEGRO_KEY_ESCAPE:
@@ -225,8 +337,9 @@ int main(void)
 				break;
 				
 			}
+			al_wait_for_event(event_queue, &ev);
 		}
-		if (ev.type == ALLEGRO_EVENT_TIMER)
+		else if (ev.type == ALLEGRO_EVENT_TIMER)
 		{
 			if (postac_y >= 60 && postac_y < 305)
 				postac_y -= keys[UP] * 1;
@@ -290,6 +403,7 @@ int main(void)
 				al_draw_bitmap(naboj, 110, 395, 0);
 				al_draw_bitmap(naboj, 130, 395, 0);
 				al_draw_bitmap(naboj, 150, 395, 0);
+				
 			}
 			if (naboje == 7)
 			{
@@ -342,13 +456,17 @@ int main(void)
 			}
 			if (naboje == 0)
 			{
+				if (ilosc_graczy == 2)
+					al_play_sample(przeladuj, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, 0);
+				else
+					al_play_sample(przeladuj_k, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, 0);
 				przeladowanie--;
 				al_draw_text(font9, al_map_rgb(255, 255, 255), 330, 144, 0, "Przeladowywanie!");
 			}
 			if (przeladowanie == 0)
 			{
 				naboje = 9;
-				przeladowanie = 50;
+				przeladowanie = 130;
 			}
 			
 			
@@ -915,11 +1033,11 @@ int main(void)
 
 			//animacja w prawo POSTAC2
 			postac2_ruch = 0;
-			if (postac2_ruch == 0 && !keys[D] && (!keys[W] && !keys[S]) && !keys[A])
+			if (postac2_ruch == 0 && !keys[D] && (!keys[W] && !keys[S]) && !keys[A] && ilosc_graczy == 2)
 			{
 				al_draw_bitmap(postac20, postac2_x, postac2_y, 0);
 			}
-			if (!keys[LSHIFT] && !keys[A] && ((keys[W] || keys[S] || keys[D])))
+			if (!keys[LSHIFT] && !keys[A] && ((keys[W] || keys[S] || keys[D])) && ilosc_graczy == 2)
 			{
 
 				if (postac2_x % 10 >= 0 && postac2_x % 10 < 10)
@@ -1015,7 +1133,7 @@ int main(void)
 			}
 
 			//animacja pion POSTAC2
-			if ((keys[W] || keys[S]) && !keys[A] && !keys[D])
+			if ((keys[W] || keys[S]) && !keys[A] && !keys[D] && ilosc_graczy==2)
 			{
 				if (postac2_y % 20 >= 10 && postac2_y % 20 < 20)
 				{
@@ -1113,7 +1231,7 @@ int main(void)
 				}
 			}
 			//animacja strzelania POSTAC2
-			if (keys[LSHIFT] && !keys[A])
+			if (keys[LSHIFT] && !keys[A] && ilosc_graczy == 2)
 			{
 				if (!keys[D] && (!keys[W] && !keys[S]))
 				{
@@ -1207,7 +1325,7 @@ int main(void)
 			}
 				//back animacja POSTAC2
 
-				if (!keys[LSHIFT] && keys[A] || (keys[W] || keys[S]))
+				if ((!keys[LSHIFT] && keys[A] || (keys[W] || keys[S])) && ilosc_graczy == 2)
 				{
 
 					if (postac2_x % 20 >= 10 && postac2_x % 20 < 20)
@@ -1345,25 +1463,8 @@ int main(void)
 			
 			//smierc
 			if (hp_gracza == 0)
-			{
-				al_get_keyboard_state(&klawiatura);
-				while (!al_key_down(&klawiatura, ALLEGRO_KEY_SPACE))
-				{
-					al_get_keyboard_state(&klawiatura);
-					ALLEGRO_BITMAP *smierc = al_create_bitmap(754, 384);
-					al_clear_to_color(al_map_rgb(255, 255, 255));
-					al_draw_text(font9, al_map_rgb(0, 0, 0), 230, 144, 0, "Jestes martwy, spacja zaczyna od nowa!");
-					al_flip_display();
-					hp_gracza = 10;
-					postac_x = 50;
-					wrog_x = (rand() % 200) + 800;
-					wrog1_x = (rand() % 150) + 800;
-					wrog2_x = (rand() % 250) + 800;
-					ilosc_monet = 0;
-					ilosc_zabic = 0;
-					
-					
-				}
+				wybierz = 2;
+			
 			}
 			//fonty
 			al_draw_textf(font8, al_map_rgb(0, 0, 0), 10, 10, 0, "x=%d , y=%d", postac_x, postac_y);
@@ -1373,6 +1474,7 @@ int main(void)
 				al_draw_textf(font8, al_map_rgb(0, 0, 0), wrog3_x + 10, wrog3_y - 5, 0, "HP: %d", hp_przeciwnika3);
 				al_draw_textf(font8, al_map_rgb(0, 0, 0), wrog4_x + 10, wrog4_y - 5, 0, "HP: %d", hp_przeciwnika4);
 				al_draw_textf(font8, al_map_rgb(0, 0, 0), postac_x + 10, postac_y - 10, 0, "Player 1");
+				if(ilosc_graczy == 2)
 				al_draw_textf(font8, al_map_rgb(0, 0, 0), postac2_x + 10, postac2_y - 10, 0, "Player 2");
 		
 			al_draw_textf(font_ttf, al_map_rgb(255, 255, 255), 290, 400, 0, "%d", hp_gracza);
@@ -1380,11 +1482,82 @@ int main(void)
 			al_draw_textf(font_ttf, al_map_rgb(255, 255, 255), 660, 400, 0, "%d", ilosc_monet);
 			al_draw_textf(font8, al_map_rgb(0, 0, 0), 630, 50, 0, "Ilosc wrogow: %d", ilosc_wrogow);
 			al_flip_display();
-		}
-		
-	}
-	al_destroy_event_queue(event_queue);
-	al_destroy_display(display);						
+		}break;
+		case 2:
+		{
+			al_play_sample(death, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, 0);
+				al_get_keyboard_state(&klawiatura);
+				while (!al_key_down(&klawiatura, ALLEGRO_KEY_ENTER))
+				{
+					al_wait_for_event(event_queue, &ev);
+					al_draw_bitmap(menu, 0, 0, 0);
+					al_draw_bitmap(menu_ponownie, 240, 200,0);
+					al_draw_bitmap(menu_wyjdz, 320, 250, 0);
+					if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
+					{
+						switch (ev.keyboard.keycode)
+						{
+						case ALLEGRO_KEY_UP:
+							keys[UP] = true;
+							break;
+						case ALLEGRO_KEY_DOWN:
+							keys[UP] = true;
+							break;
+						}
+					}
+					else if (ev.type == ALLEGRO_EVENT_KEY_UP)
+					{
+						switch (ev.keyboard.keycode)
+						{
+						case ALLEGRO_KEY_UP:
+							keys[UP] = false;
+							if (menu_wybierz == 0)
+								menu_wybierz = 1;
+							else if (menu_wybierz == 1)
+								menu_wybierz--;
+							
+							break;
+						case ALLEGRO_KEY_DOWN:
+							keys[DOWN] = false;
+							if (menu_wybierz == 0)
+								menu_wybierz++;
+							else if (menu_wybierz == 1)
+								menu_wybierz--;
+							break;
+						}
+					}
+
+					al_get_keyboard_state(&klawiatura);
+					if (al_key_down(&klawiatura, ALLEGRO_KEY_ENTER) && menu_wybierz == 0)
+						wybierz = 1;
+					if (al_key_down(&klawiatura, ALLEGRO_KEY_ENTER) && menu_wybierz == 1)
+						wybierz = 404;
+
+
+					if (menu_wybierz == 0)
+						al_draw_bitmap(menu_ponownie_o, 240, 200, 0);
+					if (menu_wybierz == 1)
+						al_draw_bitmap(menu_wyjdz_o, 320, 250, 0);
+					al_flip_display();
+				}
+				hp_gracza = 10;
+				postac_x = 50;
+				wrog_x = (rand() % 200) + 800;
+				wrog1_x = (rand() % 150) + 800;
+				wrog2_x = (rand() % 250) + 1400;
+				wrog3_x = (rand() % 200) + 800;
+				wrog4_x = (rand() % 150) + 1200;
+				ilosc_monet = 0;
+				ilosc_zabic = 0;
+		}break;
+		case 404:
+		{
+			done = true;
+		   
+		}break;
+}}
 	
+	al_destroy_display(display);
+	al_destroy_event_queue(event_queue);
 	return 0;
 }
